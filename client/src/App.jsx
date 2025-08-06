@@ -20,7 +20,7 @@ function App() {
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      const res = await fetch('https://glorious-space-engine-qwjq7r7xq44h49pq-5000.app.github.dev/chat', {
+      const res = await fetch('https://ai-chatbot-with-gemini.onrender.com/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input })
