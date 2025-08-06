@@ -3,7 +3,7 @@ Flask==3.1.1
 flask-cors==6.0.1
 
 # Gunicorn for production server (optional but good practice)
-gunicorn
+
 
 # Environment variable loading
 python-dotenv==1.1.1
