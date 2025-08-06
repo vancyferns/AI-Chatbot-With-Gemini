@@ -1,46 +1,74 @@
-from flask import Flask, request, jsonify
-import os
-from dotenv import load_dotenv
-import google.generativeai as genai
-from flask_cors import CORS
+import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import './App.css';
 
-# Load environment variables
-load_dotenv()
+function App() {
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]);
+  const chatBoxRef = useRef(null);
 
-# Configure Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-# Initialize Flask
-app = Flask(__name__)
-CORS(app)  # Allow all origins; for production, use CORS(app, origins=['https://your-frontend.com'])
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
-# Create chat model
-model = genai.GenerativeModel('gemini-2.5-flash')
-chat = model.start_chat()
+    const userMessage = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
 
-# Test route
-@app.route('/', methods=['GET'])
-def home():
-    return "✅ Gemini Chat API is running!", 200
+    try {
+      const res = await fetch('https://glorious-space-engine-qwjq7r7xq44h49pq-5000.app.github.dev/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: input })
+      });
 
-# Chat route
-@app.route('/chat', methods=['POST'])
-def chat_route():
-    if not request.is_json:
-        return jsonify({"error": "Invalid content type, must be application/json"}), 400
+      const data = await res.json();
+      const botMessage = { role: 'bot', content: data.response };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage = { role: 'bot', content: '❌ Failed to connect to the server.' };
+      setMessages(prev => [...prev, errorMessage]);
+    }
 
-    data = request.get_json()
-    user_input = data.get("message", "")
+    setInput('');
+  };
 
-    if not user_input:
-        return jsonify({"error": "No message provided"}), 400
+  return (
+    <div className="chat-container">
+      <h2 className="chat-title">💬 Virtual ChatBuddy</h2>
+      <div className="chat-box" ref={chatBoxRef}>
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`chat-message ${msg.role === 'user' ? 'user' : 'bot'}`}
+          >
+            <strong>{msg.role === 'user' ? 'You' : 'Bot'}:</strong>{' '}
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
+          </div>
+        ))}
+      </div>
+      <div className="chat-input-area">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+          className="chat-input"
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+        />
+        <button onClick={handleSend} className="chat-button">Send</button>
+      </div>
+      <footer>
+  Made with ❤️ by You
+</footer>
 
-    try:
-        response = chat.send_message(user_input)
-        return jsonify({"response": response.text})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    </div>
+  );
+}
 
-# Run the app on 0.0.0.0 to allow external access
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+export default App;
